@@ -58,6 +58,10 @@ pub fn build(b: *Build) void {
             stlink.linkSystemLibrary("wsock32");
             stlink.linkSystemLibrary("ws2_32");
         },
+        .linux => {
+            stlink.defineCMacro("STLINK_HAVE_SYS_TIME_H", null);
+            stlink.defineCMacro("STLINK_HAVE_SYS_MMAN_H", null);
+        },
         else => {},
     }
     stlink.addIncludePath(.{ .path = "inc" });
