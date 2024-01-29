@@ -114,12 +114,10 @@ pub fn build(b: *Build) void {
         "src/st-util/gdb-server.c",
         "src/st-util/semihosting.c",
     }, c_flags);
-    switch (target.getOsTag()) {
-        .windows => {
-            st_util.addIncludePath(.{ .path = "src/win32" });
-        },
-        else => {},
-    }
+
+    if (target.getOsTag() == .windows)
+        st_util.addIncludePath(.{ .path = "src/win32" });
+
     st_util.addIncludePath(.{ .path = "inc" });
     st_util.addIncludePath(.{ .path = "src/stlink-lib" });
     st_util.addConfigHeader(version);
