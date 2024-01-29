@@ -1,7 +1,17 @@
 const std = @import("std");
 const Build = std.Build;
+const LazyPath = Build.LazyPath;
 
 const c_flags = &.{};
+
+pub fn init(b: *Build, dependency_name: []const u8) *STLink {
+    const st = b.allocator.create(STLink) catch @panic("OOM");
+    st.* = STLink{
+        .b = b,
+        .self = b.dependency(dependency_name, .{ .optimize = .ReleaseSafe }),
+    };
+    return st;
+}
 
 pub fn build(b: *Build) void {
     const target = b.standardTargetOptions(.{});
@@ -141,3 +151,149 @@ pub fn build(b: *Build) void {
     st_trace.linkLibrary(libusb);
     b.installArtifact(st_trace);
 }
+
+pub const STLink = struct {
+    b: *Build,
+    self: *Build.Dependency,
+
+    pub const Format = enum {
+        binary,
+        ihex,
+    };
+
+    pub const Area = enum {
+        main,
+        system,
+        otp,
+        optcr,
+        optcr1,
+        option,
+        option_boot_add,
+    };
+
+    pub const FlashOptions = union(enum) {
+        read: ReadWriteOptions,
+        write: ReadWriteOptions,
+        erase: struct {
+            debug: bool = false,
+            connect_under_reset: bool = false,
+            hot_plug: bool = false,
+            /// in KHz
+            freq: ?u32 = null,
+            serial: ?u32 = null,
+        },
+        reset: struct {
+            debug: bool = false,
+            /// in KHz
+            freq: ?u32 = null,
+            serial: ?u32 = null,
+        },
+
+        pub const ReadWriteOptions = struct {
+            debug: bool = false,
+            reset: bool = false,
+            connect_under_reset: bool = false,
+            hot_plug: bool = false,
+            opt: bool = false,
+            serial: ?u32 = null,
+            format: Format = .binary,
+            flash: ?u32 = null,
+            /// in KHz
+            freq: ?u32 = null,
+            area: Area = .main,
+            path: *Build.CompileStep,
+            addr: u32,
+            size: u32,
+        };
+    };
+
+    fn add_read_write_opts(b: *Build, run: *Build.RunStep, opts: FlashOptions.ReadWriteOptions, cmd: []const u8) void {
+        if (opts.debug) run.addArg("--debug");
+        if (opts.reset) run.addArg("--reset");
+        if (opts.connect_under_reset) run.addArg("--connect-under-reset");
+        if (opts.hot_plug) run.addArg("--hot-plug");
+        if (opts.opt) run.addArg("--opt");
+        if (opts.serial) |s| run.addArg(b.fmt("--serial=0x{x}", .{s}));
+        run.addArg(b.fmt("--format={s}", .{switch (opts.format) {
+            .binary => "binary",
+            .ihex => "ihex",
+        }}));
+        if (opts.flash) |f| run.addArg(b.fmt("--flash=0x{x}", .{f}));
+        if (opts.freq) |f| run.addArg(b.fmt("--freq={x}", .{f}));
+        run.addArg(b.fmt("--area={s}", .{switch (opts.area) {
+            .main => "main",
+            .system => "system",
+            .otp => "otp",
+            .optcr => "optcr",
+            .optcr1 => "optcr1",
+            .option => "option",
+            .option_boot_add => "option_boot_add",
+        }}));
+
+        run.addArg(cmd);
+
+        const raw_elf = opts.path.getEmittedBin();
+        const objcopy = b.addObjCopy(raw_elf, .{
+            .basename = opts.path.name,
+            .format = switch (opts.format) {
+                .binary => .bin,
+                .ihex => .hex,
+            },
+        });
+        run.addFileArg(objcopy.getOutput());
+
+        run.addArg(b.fmt("0x{x}", .{opts.addr}));
+        run.addArg(b.fmt("0x{x}", .{opts.size}));
+    }
+
+    pub fn flash(stlink: *STLink, opts: FlashOptions) *Build.RunStep {
+        const b = stlink.b;
+        const st_flash = stlink.self.artifact("st-flash");
+        const run = stlink.b.addRunArtifact(st_flash);
+
+        switch (opts) {
+            .read => |o| add_read_write_opts(b, run, o, "read"),
+            .write => |o| add_read_write_opts(b, run, o, "write"),
+            .erase => |o| {
+                if (o.debug) run.addArg("--debug");
+                if (o.connect_under_reset) run.addArg("--connect-under-reset");
+                if (o.hot_plug) run.addArg("--hot-plug");
+                if (o.freq) |f| run.addArg(b.fmt("--freq={}", .{f}));
+                if (o.serial) |s| run.addArg(b.fmt("--serial=0x{x}", .{s}));
+                run.addArg("erase");
+            },
+            .reset => |o| {
+                if (o.debug) run.addArg("--debug");
+                if (o.freq) |f| run.addArg(b.fmt("--freq={}", .{f}));
+                if (o.serial) |s| run.addArg(b.fmt("--serial=0x{x}", .{s}));
+                run.addArg("reset");
+            },
+        }
+
+        return run;
+    }
+
+    pub const InfoOptions = struct {};
+
+    pub fn info(stlink: *STLink, opts: InfoOptions) *Build.RunStep {
+        _ = stlink;
+        _ = opts;
+        @panic("TODO: st-info arguments");
+    }
+
+    pub const UtilOptions = struct {};
+
+    pub fn util(stlink: *STLink, opts: UtilOptions) *Build.RunStep {
+        _ = stlink;
+        _ = opts;
+        @panic("TODO: st-util arguments");
+    }
+
+    pub const TraceOptions = struct {};
+
+    pub fn trace(stlink: *STLink, opts: TraceOptions) *Build.RunStep {
+        _ = stlink;
+        _ = opts;
+        @panic("TODO: st-trace arguments");
+    }
+};
