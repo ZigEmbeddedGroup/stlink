@@ -1,0 +1,10 @@
+.{
+    .name = "stlink",
+    .version = "1.7.0",
+    .dependencies = .{
+        .libusb = .{
+            .url = "https://github.com/ZigEmbeddedGroup/libusb/archive/347fecde82bd953f5cb71aaa7060b38c9e364ed0.tar.gz",
+            .hash = "1220797b3fae1791cf477f11c2b0a71bc053351053eff7f960873190093398a0581a",
+        },
+    },
+}
