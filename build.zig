@@ -235,7 +235,7 @@ pub const STLink = struct {
         if (opts.path) |path| {
             const raw_elf = path.getEmittedBin();
             const objcopy = b.addObjCopy(raw_elf, .{
-                .basename = opts.path.name,
+                .basename = path.name,
                 .format = switch (opts.format) {
                     .binary => .bin,
                     .ihex => .hex,
