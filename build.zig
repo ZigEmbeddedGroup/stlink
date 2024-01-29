@@ -201,9 +201,9 @@ pub const STLink = struct {
             /// in KHz
             freq: ?u32 = null,
             area: Area = .main,
-            path: *Build.CompileStep,
-            addr: u32,
-            size: u32,
+            path: ?*Build.CompileStep = null,
+            addr: ?u32 = null,
+            size: ?u32 = null,
         };
     };
 
@@ -232,18 +232,23 @@ pub const STLink = struct {
 
         run.addArg(cmd);
 
-        const raw_elf = opts.path.getEmittedBin();
-        const objcopy = b.addObjCopy(raw_elf, .{
-            .basename = opts.path.name,
-            .format = switch (opts.format) {
-                .binary => .bin,
-                .ihex => .hex,
-            },
-        });
-        run.addFileArg(objcopy.getOutput());
+        if (opts.path) |path| {
+            const raw_elf = path.getEmittedBin();
+            const objcopy = b.addObjCopy(raw_elf, .{
+                .basename = opts.path.name,
+                .format = switch (opts.format) {
+                    .binary => .bin,
+                    .ihex => .hex,
+                },
+            });
+            run.addFileArg(objcopy.getOutput());
+        }
 
-        run.addArg(b.fmt("0x{x}", .{opts.addr}));
-        run.addArg(b.fmt("0x{x}", .{opts.size}));
+        if (opts.addr) |addr|
+            run.addArg(b.fmt("0x{x}", .{addr}));
+
+        if (opts.size) |size|
+            run.addArg(b.fmt("0x{x}", .{size}));
     }
 
     pub fn flash(stlink: *STLink, opts: FlashOptions) *Build.RunStep {
