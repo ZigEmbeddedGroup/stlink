@@ -15,6 +15,52 @@ Recent new features and bugfixes can be found in the [Changelog](CHANGELOG.md) o
 
 The stlink library and tools are licensed under the **[BSD-3 License](LICENSE.md)**.
 
+## Usage with Zig
+
+This fork uses the zig build system, specifically Zig 0.11.0. Here's an example
+`build.zig.zon` and `build.zig` respectively that includes stlink as a
+dependency and sets up a build command to flash a microcontroller.
+
+```zig
+.{
+    .name = "My Project",
+    .version = "0.0.1",
+    .dependencies = .{
+        .stlink = .{
+            .url = "https://github.com/ZigEmbeddedGroup/stlink/archive/f00d40f4d5c6de9425fec7db0e008405bd12d332.tar.gz",
+            .hash = "1220337afbff0db6f390c4150a9ba5d3f613c2d1d48b3ae084db8b4b7b2ea6ec27f8",
+        },
+    },
+}
+```
+
+```zig
+const std = @import("std");
+const Build = std.Build;
+
+const stlink = @import("stlink");
+
+pub fn build (b: *Build) void {
+    // ...
+    
+    // The string is to specify what name you gave it in your build.zig.zon
+    const st = stlink.init(b, "stlink");
+
+    const flash = st.flash(.{
+        .write = .{
+            // assume exe is some embedded executable we've made for our microcontroller
+            .path = exe,
+            .addr = 0x00000000,
+        },
+    });
+
+    const flash_step = b.step("flash", "Flash the microcontroller");
+    flash_step.dependOn(&flash.step);
+}
+```
+
+Now you can `zig build flash`.
+
 ## Introduction
 
 stlink is an open source toolset to program and debug STM32 devices and boards manufactured by STMicroelectronics.
