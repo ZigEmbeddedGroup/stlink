@@ -9,3 +9,6 @@ build-mingw-64
 obj-*
 *.user*
 *.swp
+
+zig-out
+zig-cache
