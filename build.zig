@@ -227,7 +227,7 @@ pub const STLink = struct {
             /// in KHz
             freq: ?u32 = null,
             area: Area = .main,
-            path: ?*Build.CompileStep = null,
+            path: ?*Build.Step.Compile = null,
             addr: ?u32 = null,
             size: ?u32 = null,
         };
