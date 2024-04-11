@@ -6,5 +6,9 @@
             .url = "https://github.com/ZigEmbeddedGroup/libusb/archive/347fecde82bd953f5cb71aaa7060b38c9e364ed0.tar.gz",
             .hash = "1220797b3fae1791cf477f11c2b0a71bc053351053eff7f960873190093398a0581a",
         },
+        .@"ubsan-runtime" = .{
+            .url = "https://github.com/mattnite/ubsan-runtime/archive/c1e153c89f5ba2796817cce91e031ce5a764debd.tar.gz",
+            .hash = "1220ceb568e87c13985faef7b388b9422ab0fab42b5a2197f415f67a947641faefd9",
+        },
     },
 }

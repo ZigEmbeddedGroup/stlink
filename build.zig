@@ -2,7 +2,9 @@ const std = @import("std");
 const Build = std.Build;
 const LazyPath = Build.LazyPath;
 
-const c_flags = &.{};
+const c_flags = &.{
+    "-fno-sanitize-trap=undefined",
+};
 
 pub fn init(b: *Build, dependency_name: []const u8) *STLink {
     const st = b.allocator.create(STLink) catch @panic("OOM");
@@ -21,8 +23,13 @@ pub fn build(b: *Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const ubsan_runtime_dep = b.dependency("ubsan-runtime", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
     const libusb = libusb_dep.artifact("usb");
+    const ubsan_runtime = ubsan_runtime_dep.artifact("ubsan-runtime");
 
     const version = b.addConfigHeader(.{
         .style = .{
@@ -118,6 +125,7 @@ pub fn build(b: *Build) void {
     st_flash.addConfigHeader(version);
     st_flash.linkLibrary(stlink);
     st_flash.linkLibrary(libusb);
+    st_flash.linkLibrary(ubsan_runtime);
     b.installArtifact(st_flash);
 
     const st_info = b.addExecutable(.{
@@ -135,6 +143,7 @@ pub fn build(b: *Build) void {
     st_info.addConfigHeader(version);
     st_info.linkLibrary(stlink);
     st_info.linkLibrary(libusb);
+    st_info.linkLibrary(ubsan_runtime);
     b.installArtifact(st_info);
 
     const st_util = b.addExecutable(.{
@@ -158,6 +167,7 @@ pub fn build(b: *Build) void {
     st_util.addConfigHeader(version);
     st_util.linkLibrary(stlink);
     st_util.linkLibrary(libusb);
+    st_util.linkLibrary(ubsan_runtime);
     b.installArtifact(st_util);
 
     const st_trace = b.addExecutable(.{
@@ -175,6 +185,7 @@ pub fn build(b: *Build) void {
     st_trace.addConfigHeader(version);
     st_trace.linkLibrary(stlink);
     st_trace.linkLibrary(libusb);
+    st_trace.linkLibrary(ubsan_runtime);
     b.installArtifact(st_trace);
 }
 
